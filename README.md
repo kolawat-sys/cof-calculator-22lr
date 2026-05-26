@@ -2,8 +2,7 @@
 
 **An interactive tool for designing PRS-style .22 LR matches**, based on real research from 791 targets across 36 NRL22 Courses of Fire (US + South Africa, 2024–2026).
 
-🔫 **[Open the live calculator →](https://YOURUSERNAME.github.io/cof-calculator-22lr/)** *(replace `YOURUSERNAME` with your GitHub username after Pages is enabled)*
-
+🔫 **[Open the live calculator →](https://kolawat-sys.github.io/cof-calculator-22lr/)
 ---
 
 ## What it does
