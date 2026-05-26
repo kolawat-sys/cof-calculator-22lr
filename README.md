@@ -2,7 +2,8 @@
 
 **An interactive tool for designing PRS-style .22 LR matches**, based on real research from 791 targets across 36 NRL22 Courses of Fire (US + South Africa, 2024–2026).
 
-🔫 **[Open the live calculator →](https://kolawat-sys.github.io/cof-calculator-22lr/)
+🔫 **[Open the live calculator →](https://YOURUSERNAME.github.io/cof-calculator-22lr/)** *(replace `YOURUSERNAME` with your GitHub username after Pages is enabled)*
+
 ---
 
 ## What it does
@@ -39,7 +40,7 @@ Plus 4 interactive infographics:
 
 ## Credit & License
 
-**Created by [Kolawat Runelert](https://www.instagram.com/precisiondynamiclab) · @precisiondynamiclab**
+**Created by [Kolawat Runelert](https://www.instagram.com/precisiondynamiclab) · IG [@precisiondynamiclab](https://www.instagram.com/precisiondynamiclab) · GitHub [@kolawat-sys](https://github.com/kolawat-sys)**
 
 - ✅ **Free to copy, share, print, screenshot, post** for non-commercial / community use
 - ✅ **Free to integrate** into your own COF design workflow
@@ -73,6 +74,7 @@ The dataset is included as `combined_target_dataset.csv` in the source folder. S
 
 ## Versions
 
+- **v5** (2026-05-26) — Hero banner with animated stats, difficulty gauge, number animations, pulse markers, sweet-spot detection
 - **v4** (2026-05-26) — Added hover tooltips, click-to-load, MOA histogram, Stage Archetype Frequency
 - **v3** (2026-05-26) — Added watermark, portrait, QR, integrity check, mobile-safe CSS
 - **v2** (2026-05-26) — Added 4 interactive SVG infographics
