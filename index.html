@@ -1,6 +1,6 @@
 <!--
 ================================================================================
-  COF Calculator — Range × MOA × Target Size · NRL22 Research v3
+  COF Calculator — Range × MOA × Target Size · NRL22 Research v4
   © 2026 Kolawat Runelert · Instagram: @precisiondynamiclab
 
   LICENSE: Free to copy and share for non-commercial / community use,
@@ -176,6 +176,14 @@
     font-family:'Sarabun',sans-serif;
   }
   .tamper-warning a{color:#0e1116;text-decoration:underline}
+
+  /* v4: Interactive tooltip + clickable elements */
+  .ig-tooltip{position:fixed;z-index:9999;background:var(--panel);color:var(--text);border:1px solid var(--accent2);border-radius:6px;padding:6px 10px;font-size:12px;font-family:'JetBrains Mono',monospace;line-height:1.5;pointer-events:none;display:none;box-shadow:0 4px 12px rgba(0,0,0,.5);max-width:240px}
+  .ig-tooltip strong{color:var(--accent2)}
+  [data-clickable]{cursor:pointer;transition:opacity .15s}
+  [data-clickable]:hover{opacity:.7}
+  .v4-hint{font-size:11px;color:var(--accent2);margin-top:4px;font-style:italic;opacity:0.8}
+
   footer{margin-top:30px;text-align:center;color:var(--muted);font-size:12px}
 </style>
 </head>
@@ -264,7 +272,7 @@
     </div>
     <div class="panel">
       <div style="font-size:13px;color:var(--muted);margin-bottom:10px">
-        <strong style="color:var(--text)">Size Distribution</strong> ที่ระยะนี้ <span id="sugBucketLabel2"></span>
+        <strong style="color:var(--text)">Size Distribution</strong> ที่ระยะนี้ <span id="sugBucketLabel2"></span> <span class="v4-hint" style="float:right">💡 click bar to load</span>
       </div>
       <div id="sugBars"></div>
     </div>
@@ -334,6 +342,19 @@
   </div>
 </section>
 
+
+<section>
+  <h2>📈 More Research Data <span style="font-size:12px;color:var(--muted);font-weight:400">— จาก dataset 791 เป้า</span></h2>
+  <div class="grid2">
+    <div class="panel">
+      <div class="infogfx" id="gfxMOAHist"></div>
+    </div>
+    <div class="panel">
+      <div class="infogfx" id="gfxArchFreq"></div>
+    </div>
+  </div>
+</section>
+
 <section>
   <h2>Lookup Table — ระยะ × MOA → ขนาดเป้า (นิ้ว)</h2>
   <div class="panel" style="overflow-x:auto">
@@ -385,7 +406,7 @@
 </div>
 
 <footer style="margin-top:18px">
-  © 2026 Kolawat Runelert · @precisiondynamiclab · v3 · 2026-05-26<br>
+  © 2026 Kolawat Runelert · @precisiondynamiclab · v4 · 2026-05-26<br>
   dataset 791 เป้า / 36 COF (US + South Africa 2024–2026)
 </footer>
 
@@ -438,9 +459,59 @@ const NRL_DB = {
 
 const K = 0.011453;
 
+// v4: Tooltip + click-to-load helpers
+const _tip = document.getElementById('igTooltip');
+function showTip(html, ev){
+  _tip.innerHTML = html;
+  _tip.style.display = 'block';
+  moveTip(ev);
+}
+function moveTip(ev){
+  if(!_tip || _tip.style.display==='none') return;
+  const x = ev.clientX, y = ev.clientY;
+  const w = _tip.offsetWidth, h = _tip.offsetHeight;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let nx = x + 14, ny = y + 14;
+  if(nx + w > vw - 8) nx = x - w - 14;
+  if(ny + h > vh - 8) ny = y - h - 14;
+  _tip.style.left = nx + 'px';
+  _tip.style.top = ny + 'px';
+}
+function hideTip(){ if(_tip) _tip.style.display = 'none'; }
+document.addEventListener('mousemove', moveTip);
+document.addEventListener('mouseout', function(e){ if(!e.relatedTarget) hideTip(); });
+
+// Load values into calculator inputs (click-to-load)
+function loadInputs(r, m, s){
+  if(r !== null && r !== undefined){ els.range.value = r.toFixed(0); }
+  if(m !== null && m !== undefined){ els.moa.value = m.toFixed(2); }
+  if(s !== null && s !== undefined){
+    els.size.value = s.toFixed(2);
+    editStack = ['size','moa','range'];
+  } else if(m !== null && m !== undefined && r !== null && r !== undefined){
+    els.size.value = '';
+    editStack = ['moa','range','size'];
+  }
+  updateTags();
+  compute();
+  hideTip();
+  // smooth scroll to top so user sees calculator update
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+window.loadInputs = loadInputs;
+window.showTip = showTip;
+window.hideTip = hideTip;
+
+
 // Embedded chart data
 const CHART_DATA = {"heatmap": [{"r": [20, 50], "cells": [1, 21, 23, 17, 6, 5, 10, 5]}, {"r": [50, 75], "cells": [21, 51, 79, 69, 23, 18, 12, 4]}, {"r": [75, 100], "cells": [2, 23, 64, 101, 30, 9, 4, 2]}, {"r": [100, 125], "cells": [4, 9, 17, 15, 15, 5, 13, 4]}, {"r": [125, 150], "cells": [0, 3, 7, 18, 13, 8, 4, 1]}, {"r": [150, 175], "cells": [0, 0, 4, 16, 30, 0, 2, 0]}, {"r": [175, 200], "cells": [0, 0, 0, 2, 0, 2, 0, 0]}, {"r": [200, 250], "cells": [0, 0, 0, 0, 0, 0, 0, 0]}, {"r": [250, 300], "cells": [0, 0, 0, 0, 0, 0, 0, 0]}], "rangeBins": [[20, 50], [50, 75], [75, 100], [100, 125], [125, 150], [150, 175], [175, 200], [200, 250], [250, 300]], "moaBins": [[0, 1.5], [1.5, 2.0], [2.0, 2.5], [2.5, 3.0], [3.0, 3.5], [3.5, 4.0], [4.0, 5.0], [5.0, 10.0]], "scatter": [[73.2, 1.5, 1.79], [169.2, 6.0, 3.1], [72.2, 2.0, 2.42], [45.0, 1.0, 1.94], [91.4, 2.0, 1.91], [45.7, 1.5, 2.87], [86.9, 3.0, 3.01], [59.4, 1.0, 1.47], [65.0, 1.5, 2.01], [89.6, 2.0, 1.95], [60.4, 1.0, 1.45], [35.0, 1.0, 2.49], [34.7, 1.0, 2.52], [91.4, 3.0, 2.87], [64.0, 1.5, 2.05], [59.4, 1.0, 1.47], [47.5, 2.0, 3.68], [86.9, 2.5, 2.51], [96.0, 3.0, 2.73], [41.1, 1.0, 2.12], [134.4, 4.0, 2.6], [120.7, 4.0, 2.89], [96.0, 3.0, 2.73], [91.4, 3.0, 2.87], [69.5, 2.5, 3.14], [75.9, 2.5, 2.88], [81.4, 1.5, 1.61], [73.2, 2.5, 2.98], [59.4, 3.0, 4.41], [40.0, 1.0, 2.18], [39.3, 1.0, 2.22], [50.3, 2.0, 3.47], [64.0, 6.0, 8.19], [91.4, 2.5, 2.39], [164.6, 6.0, 3.18], [73.2, 2.5, 2.98], [86.9, 2.0, 2.01], [68.6, 3.0, 3.82], [75.0, 2.5, 2.91], [91.4, 2.5, 2.39], [100.0, 5.0, 4.37], [59.4, 2.5, 3.67], [73.2, 2.0, 2.39], [146.3, 6.0, 3.58], [100.0, 5.0, 4.37], [96.0, 3.0, 2.73], [69.5, 3.0, 3.77], [174.7, 6.0, 3.0], [81.4, 2.0, 2.15], [91.4, 3.0, 2.87], [118.9, 3.0, 2.2], [144.5, 4.0, 2.42], [63.1, 2.0, 2.77], [50.3, 1.0, 1.74], [90.5, 3.0, 2.89], [68.6, 3.0, 3.82], [84.1, 2.5, 2.6], [65.8, 2.0, 2.65], [86.9, 3.0, 3.01], [77.7, 2.5, 2.81], [164.6, 6.0, 3.18], [57.6, 1.5, 2.27], [118.9, 2.0, 1.47], [50.3, 1.0, 1.74], [159.1, 6.0, 3.29], [68.6, 1.5, 1.91], [54.9, 1.0, 1.59], [115.2, 3.0, 2.27], [91.4, 3.0, 2.87], [78.6, 2.5, 2.78], [59.4, 1.5, 2.2], [68.6, 1.5, 1.91], [75.0, 2.5, 2.91], [87.8, 2.5, 2.49], [70.0, 2.0, 2.49], [100.0, 2.0, 1.75], [68.6, 1.5, 1.91], [45.7, 1.5, 2.87], [91.4, 3.0, 2.87], [107.0, 3.0, 2.45], [64.0, 2.0, 2.73], [50.3, 1.5, 2.6], [45.7, 1.0, 1.91], [71.3, 1.5, 1.84], [68.6, 3.0, 3.82], [63.1, 2.0, 2.77], [54.9, 1.5, 2.39], [54.9, 2.0, 3.18], [57.6, 3.0, 4.55], [25.0, 1.0, 3.49], [91.4, 3.0, 2.87], [70.4, 1.5, 1.86], [85.0, 2.5, 2.57], [107.0, 5.0, 4.08], [64.0, 2.0, 2.73], [69.5, 1.5, 1.88], [128.0, 4.0, 2.73], [73.2, 2.0, 2.39], [160.9, 6.0, 3.26], [50.3, 1.0, 1.74], [113.4, 3.0, 2.31], [146.3, 4.0, 2.39], [71.3, 3.0, 3.67], [55.0, 2.0, 3.18], [64.0, 1.5, 2.05], [109.7, 4.0, 3.18], [91.4, 2.5, 2.39], [64.0, 1.0, 1.36], [85.0, 2.5, 2.57], [53.9, 2.0, 3.24], [56.7, 1.5, 2.31], [146.3, 5.0, 2.98], [62.2, 2.0, 2.81], [82.3, 3.0, 3.18], [158.2, 6.0, 3.31], [77.7, 1.5, 1.69], [50.3, 1.5, 2.6], [76.8, 2.0, 2.27], [68.6, 2.0, 2.55], [45.0, 1.5, 2.91], [91.4, 3.0, 2.87], [55.0, 2.0, 3.18], [73.2, 3.0, 3.58], [62.2, 2.0, 2.81], [91.4, 3.0, 2.87], [91.4, 2.5, 2.39], [155.4, 5.0, 2.81], [91.4, 3.0, 2.87], [36.6, 1.5, 3.58], [90.0, 2.5, 2.43], [41.1, 1.0, 2.12], [152.7, 6.0, 3.43], [54.9, 1.5, 2.39], [96.0, 2.0, 1.82], [115.2, 5.0, 3.79], [91.4, 3.0, 2.87], [50.3, 1.0, 1.74], [137.2, 6.0, 3.82], [80.0, 2.0, 2.18], [50.0, 1.0, 1.75], [53.9, 1.0, 1.62], [56.7, 1.0, 1.54], [36.6, 2.0, 4.77], [91.4, 3.0, 2.87], [54.9, 1.5, 2.39], [41.1, 2.0, 4.25], [45.7, 1.5, 2.87], [100.6, 2.0, 1.74], [91.4, 2.0, 1.91], [91.4, 3.0, 2.87], [64.0, 1.0, 1.36], [60.0, 2.0, 2.91], [73.2, 2.0, 2.39], [35.0, 0.5, 1.25], [60.0, 3.0, 4.37], [54.9, 1.5, 2.39], [132.6, 3.0, 1.98], [77.7, 3.0, 3.37], [91.4, 2.5, 2.39], [45.7, 2.0, 3.82], [64.0, 2.0, 2.73], [91.4, 3.0, 2.87], [81.4, 2.0, 2.15], [135.3, 5.0, 3.23], [157.3, 5.0, 2.78], [91.4, 3.0, 2.87], [91.4, 3.0, 2.87], [40.2, 2.0, 4.34], [35.0, 1.0, 2.49], [60.4, 2.0, 2.89], [100.6, 5.0, 4.34], [91.4, 3.0, 2.87], [73.2, 4.0, 4.77], [91.4, 3.0, 2.87], [59.4, 1.5, 2.2], [64.0, 2.0, 2.73], [103.3, 4.0, 3.38], [91.4, 3.0, 2.87], [64.0, 1.5, 2.05], [100.6, 2.0, 1.74], [118.9, 4.0, 2.94], [45.7, 1.5, 2.87], [182.9, 8.0, 3.82], [82.3, 2.5, 2.65], [40.2, 1.0, 2.17], [86.0, 2.5, 2.54], [81.4, 2.0, 2.15], [73.2, 2.0, 2.39], [64.0, 2.0, 2.73], [100.6, 3.0, 2.6], [40.2, 1.5, 3.26], [91.4, 3.0, 2.87], [164.6, 6.0, 3.18], [63.1, 1.5, 2.08], [50.3, 1.0, 1.74], [146.3, 6.0, 3.58], [45.7, 1.0, 1.91], [45.7, 1.0, 1.91], [59.4, 1.5, 2.2], [55.8, 1.0, 1.56], [118.9, 4.0, 2.94], [61.3, 1.5, 2.14], [47.5, 1.0, 1.84], [73.2, 2.0, 2.39], [57.6, 1.0, 1.52], [146.3, 4.0, 2.39], [50.3, 1.5, 2.6], [143.6, 5.0, 3.04], [91.4, 3.0, 2.87], [55.8, 1.5, 2.35], [51.2, 1.5, 2.56], [40.2, 1.0, 2.17], [68.6, 2.5, 3.18], [43.9, 1.0, 1.99], [91.4, 3.0, 2.87], [123.4, 6.0, 4.25], [55.0, 2.0, 3.18], [63.1, 1.5, 2.08], [54.9, 1.5, 2.39], [82.3, 2.5, 2.65], [33.8, 1.0, 2.58], [100.6, 2.0, 1.74], [84.1, 2.5, 2.6], [80.5, 2.0, 2.17], [69.5, 1.5, 1.88], [41.1, 1.0, 2.12], [146.3, 5.0, 2.98], [45.7, 1.0, 1.91], [50.0, 1.0, 1.75], [62.2, 2.0, 2.81], [36.6, 1.0, 2.39], [155.4, 6.0, 3.37], [91.4, 5.0, 4.78], [80.5, 2.0, 2.17], [45.7, 1.0, 1.91], [60.4, 1.5, 2.17], [140.8, 4.0, 2.48], [134.4, 3.0, 1.95], [40.0, 1.5, 3.27], [91.4, 3.0, 2.87], [36.6, 1.5, 3.58], [89.6, 2.5, 2.44], [114.3, 4.0, 3.06], [41.1, 2.5, 5.31], [164.6, 6.0, 3.18], [45.7, 1.0, 1.91], [91.4, 3.0, 2.87], [164.6, 6.0, 3.18], [68.6, 3.0, 3.82], [91.4, 2.5, 2.39]]};
 // .308 wind (175gr SMK, ~2700 fps, 10 mph crosswind, MOA drift) — for comparison
+
+// v4 — MOA histogram + Archetype frequency from dataset
+CHART_DATA.moaHist = [{"lo": 0, "hi": 1.0, "count": 0, "label": "0.0-1.0"}, {"lo": 1.0, "hi": 1.5, "count": 28, "label": "1.0-1.5"}, {"lo": 1.5, "hi": 2.0, "count": 107, "label": "1.5-2.0"}, {"lo": 2.0, "hi": 2.5, "count": 194, "label": "2.0-2.5"}, {"lo": 2.5, "hi": 3.0, "count": 238, "label": "2.5-3.0"}, {"lo": 3.0, "hi": 3.5, "count": 117, "label": "3.0-3.5"}, {"lo": 3.5, "hi": 4.0, "count": 47, "label": "3.5-4.0"}, {"lo": 4.0, "hi": 4.5, "count": 25, "label": "4.0-4.5"}, {"lo": 4.5, "hi": 5.0, "count": 20, "label": "4.5-5.0"}, {"lo": 5.0, "hi": 99, "count": 16, "label": ">5.0"}];
+CHART_DATA.archetypeFreq = [{"name": "KYL", "count": 80, "pct": 10.1}, {"name": "Positional", "count": 412, "pct": 52.0}, {"name": "Long-Range", "count": 137, "pct": 17.3}, {"name": "Speed", "count": 81, "pct": 10.2}, {"name": "Mixed", "count": 82, "pct": 10.4}];
+CHART_DATA.totalTargets = 792;
+
 const WIND_308 = {50:0.25, 100:0.5, 150:0.8, 200:1.1, 250:1.4, 300:1.7, 350:2.05, 400:2.4, 450:2.8, 500:3.2, 600:4.1};
 
 // ========== INFOGRAPHIC RENDERERS ==========
@@ -476,8 +547,10 @@ function renderArchetype(r, m){
   let zonesSvg = zones.map(z => {
     const x = xs(z.x1), y = ys(z.y2);
     const w = xs(z.x2)-x, h = ys(z.y1)-y;
-    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${z.color}" stroke="${z.color.replace('0.18','0.5').replace('0.22','0.6')}" stroke-width="1"/>
-      <text x="${x+w/2}" y="${y+h/2+3}" text-anchor="middle" font-size="10" fill="#e8ecf2" font-weight="700">${z.label}</text>`;
+    const cR = (z.x1+z.x2)/2, cM = (z.y1+z.y2)/2;
+    const tipText = `<strong>${z.label}</strong><br>Range ${z.x1}–${z.x2}m<br>MOA ${z.y1.toFixed(1)}–${z.y2.toFixed(1)}<br><em>click to load center</em>`;
+    return `<rect data-clickable="1" x="${x}" y="${y}" width="${w}" height="${h}" fill="${z.color}" stroke="${z.color.replace('0.18','0.5').replace('0.22','0.6')}" stroke-width="1" onmouseover="showTip(\`${tipText}\`, event)" onmouseout="hideTip()" onclick="loadInputs(${cR}, ${cM}, null)"/>
+      <text x="${x+w/2}" y="${y+h/2+3}" text-anchor="middle" font-size="10" fill="#e8ecf2" font-weight="700" pointer-events="none">${z.label}</text>`;
   }).join('');
   // Axis labels
   let axes = '';
@@ -506,7 +579,8 @@ function renderArchetype(r, m){
       ${marker}
       <text x="${W-4}" y="${H-4}" text-anchor="end" font-size="8" fill="rgba(122,234,196,0.5)" font-family="JetBrains Mono,monospace">© Kolawat Runelert · @precisiondynamiclab</text>
     </svg>
-    <div class="gfx-cap">จุดเขียวคือค่าของคุณ — โซน highlight = archetype ที่เข้ากับ combo นี้</div>`;
+    <div class="gfx-cap">จุดเขียวคือค่าของคุณ — โซน highlight = archetype ที่เข้ากับ combo นี้</div>
+    <div class="v4-hint">💡 คลิกที่โซน → โหลด Range+MOA ของ archetype นั้นลง calculator</div>`;
 }
 
 function renderWind(r){
@@ -570,7 +644,8 @@ function renderRegression(r, s){
   // Scatter points
   const pts = CHART_DATA.scatter.map(p => {
     if(p[0]>maxR || p[1]>maxS) return '';
-    return `<circle cx="${xs(p[0])}" cy="${ys(p[1])}" r="2.2" fill="#7aeac4" opacity="0.45"/>`;
+    const tip = `<strong>Real NRL22 target</strong><br>Range: ${p[0]} m<br>Size: ${p[1]}″<br>MOA: ${p[2]}<br><em>click to load</em>`;
+    return `<circle data-clickable="1" cx="${xs(p[0])}" cy="${ys(p[1])}" r="3" fill="#7aeac4" opacity="0.55" onmouseover="this.setAttribute('r','6');this.setAttribute('opacity','1');showTip(\`${tip}\`, event)" onmouseout="this.setAttribute('r','3');this.setAttribute('opacity','0.55');hideTip()" onclick="loadInputs(${p[0]}, ${p[2]}, ${p[1]})"/>`;
   }).join('');
   // Regression line: size = 0.0375 * range - 0.45
   const x0=0, x1=maxR;
@@ -603,7 +678,8 @@ function renderRegression(r, s){
       ${marker}
       <text x="${W-4}" y="${H-4}" text-anchor="end" font-size="8" fill="rgba(122,234,196,0.5)" font-family="JetBrains Mono,monospace">© Kolawat Runelert · @precisiondynamiclab</text>
     </svg>
-    <div class="gfx-cap">เส้น regression: ขนาดเป้าโต ~1 นิ้ว ทุก 27m · จุดแดง = ค่าของคุณ</div>`;
+    <div class="gfx-cap">เส้น regression: ขนาดเป้าโต ~1 นิ้ว ทุก 27m · จุดแดง = ค่าของคุณ</div>
+    <div class="v4-hint">💡 hover ที่จุด scatter เพื่อดูค่าจริง · คลิกเพื่อโหลดเป็น input</div>`;
 }
 
 function renderHeatmap(r, m){
@@ -628,9 +704,14 @@ function renderHeatmap(r, m){
         const a = 0.15 + intensity*0.75;
         fill = `rgba(94,162,255,${a})`;
       }
-      cells += `<rect x="${x}" y="${y}" width="${cw-1}" height="${ch-1}" fill="${fill}" stroke="#0e1116" stroke-width="0.5"/>`;
+      const moaMidArr = [[0,1.5],[1.5,2.0],[2.0,2.5],[2.5,3.0],[3.0,3.5],[3.5,4.0],[4.0,5.0],[5.0,8.0]];
+      const rMid = (data[i].r[0]+data[i].r[1])/2;
+      const mMid = (moaMidArr[j][0]+moaMidArr[j][1])/2;
+      const cellTip = c>0 ? `<strong>${data[i].r[0]}–${data[i].r[1]}m × ${moaMidArr[j][0]}–${moaMidArr[j][1]} MOA</strong><br>${c} targets in dataset<br>${(c*100/CHART_DATA.totalTargets).toFixed(1)}% of total<br><em>click to load midpoint</em>` : `${data[i].r[0]}–${data[i].r[1]}m × ${moaMidArr[j][0]}–${moaMidArr[j][1]} MOA<br>(0 targets — combo not in dataset)`;
+      const clickAttr = c>0 ? `data-clickable="1" onclick="loadInputs(${rMid}, ${mMid}, null)"` : '';
+      cells += `<rect x="${x}" y="${y}" width="${cw-1}" height="${ch-1}" fill="${fill}" stroke="#0e1116" stroke-width="0.5" ${clickAttr} onmouseover="showTip(\`${cellTip}\`, event)" onmouseout="hideTip()"/>`;
       if(c>0){
-        cells += `<text x="${x+cw/2}" y="${y+ch/2+3}" text-anchor="middle" font-size="10" fill="${c>maxC*0.4?'#0e1116':'#e8ecf2'}" font-weight="600">${c}</text>`;
+        cells += `<text x="${x+cw/2}" y="${y+ch/2+3}" text-anchor="middle" font-size="10" fill="${c>maxC*0.4?'#0e1116':'#e8ecf2'}" font-weight="600" pointer-events="none">${c}</text>`;
       }
     }
   }
@@ -714,6 +795,118 @@ function windAt(rangeM){
       return tbl[k0] + (tbl[k1]-tbl[k0])*(rangeM-k0)/(k1-k0);
     }
   }
+}
+
+// v4: MOA Histogram + Archetype Frequency
+function renderMOAHistogram(m){
+  const W=380, H=220, P={l:40,r:14,t:24,b:32};
+  const xW=W-P.l-P.r, yH=H-P.t-P.b;
+  const data = CHART_DATA.moaHist;
+  const maxC = Math.max.apply(null, data.map(function(d){return d.count;}));
+  const total = CHART_DATA.totalTargets;
+  const moaMin = 1.0, moaMax = 5.0;
+  const xs = function(v){ return P.l + ((v-moaMin)/(moaMax-moaMin))*xW; };
+  const ys = function(v){ return P.t + (1 - v/maxC)*yH; };
+
+  let bars = '';
+  for(let i=0;i<data.length;i++){
+    const d = data[i];
+    if(d.lo<moaMin) continue;
+    const bx = xs(d.lo);
+    const bw = (d.hi<=moaMax?xs(d.hi)-bx:xs(moaMax)-bx);
+    const by = ys(d.count);
+    const bh = (P.t+yH) - by;
+    const pct = (d.count*100/total).toFixed(1);
+    const tip = '<strong>MOA '+d.label+'</strong><br>'+d.count+' targets ('+pct+'%)<br><em>click to load mid-MOA</em>';
+    const midM = (d.lo + Math.min(d.hi,moaMax))/2;
+    if(bw<=1) continue;
+    bars += '<rect data-clickable="1" x="'+bx+'" y="'+by+'" width="'+(bw-1)+'" height="'+bh+'" fill="rgba(94,162,255,0.7)" stroke="#0e1116" onmouseover="showTip(\''+tip+'\', event)" onmouseout="hideTip()" onclick="loadInputs(parseFloat(els.range.value)||100, '+midM.toFixed(2)+', null)"/>';
+    if(d.count>0){
+      bars += '<text x="'+(bx+bw/2)+'" y="'+(by-3)+'" text-anchor="middle" font-size="9" fill="#9aa3b2" pointer-events="none">'+d.count+'</text>';
+    }
+  }
+
+  const pct = NRL_DB.moaPct;
+  const pctMarks = [
+    {v:pct.p25, label:'p25', color:'#ffb86b'},
+    {v:pct.median, label:'median', color:'#7aeac4'},
+    {v:pct.p75, label:'p75', color:'#ffb86b'}
+  ];
+  let marks = '';
+  for(const pp of pctMarks){
+    if(pp.v>=moaMin && pp.v<=moaMax){
+      const px = xs(pp.v);
+      marks += '<line x1="'+px+'" y1="'+P.t+'" x2="'+px+'" y2="'+(P.t+yH)+'" stroke="'+pp.color+'" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>';
+    }
+  }
+
+  let marker = '';
+  if(isFinite(m) && m>=moaMin && m<=moaMax){
+    const mx = xs(m);
+    marker = '<line x1="'+mx+'" y1="'+P.t+'" x2="'+mx+'" y2="'+(P.t+yH)+'" stroke="#ff7a8a" stroke-width="2.5"/>' +
+             '<text x="'+mx+'" y="'+(P.t-6)+'" text-anchor="middle" font-size="10" fill="#ff7a8a" font-weight="700">'+m.toFixed(1)+'</text>';
+  }
+
+  let axes = '';
+  for(const xv of [1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0]){
+    axes += '<text x="'+xs(xv)+'" y="'+(H-P.b+14)+'" text-anchor="middle" font-size="9" fill="#9aa3b2">'+xv.toFixed(1)+'</text>';
+  }
+
+  const sig = '<text x="'+(W-4)+'" y="'+(H-4)+'" text-anchor="end" font-size="8" fill="rgba(122,234,196,0.5)" font-family="JetBrains Mono,monospace">© Kolawat Runelert · @precisiondynamiclab</text>';
+
+  return '<div class="gfx-title">MOA Distribution Histogram — 791 targets</div>' +
+    '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="'+P.l+'" y="'+P.t+'" width="'+xW+'" height="'+yH+'" fill="#0e1116" stroke="#2a3142"/>' +
+      bars + marks + marker + axes +
+      '<text x="'+(W/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="10" fill="#9aa3b2">MOA</text>' +
+      '<text x="10" y="'+(H/2)+'" font-size="10" fill="#9aa3b2" transform="rotate(-90,10,'+(H/2)+')">target count</text>' +
+      sig +
+    '</svg>' +
+    '<div class="gfx-cap">เส้นแดง = MOA ของคุณ · เส้นปะ = p25/median/p75</div>' +
+    '<div class="v4-hint">💡 click bar to load mid-MOA</div>';
+}
+
+function renderArchetypeFrequency(r, m){
+  const W=380, H=200, P={l:90,r:14,t:14,b:14};
+  const data = CHART_DATA.archetypeFreq;
+  const xW=W-P.l-P.r;
+  const rowH = (H-P.t-P.b)/data.length;
+  const maxC = Math.max.apply(null, data.map(function(d){return d.count;}));
+
+  let userArch = null;
+  if(isFinite(r) && isFinite(m)){
+    if(m<=1.8) userArch='KYL';
+    else if(r>=100 && r<=200 && m>=2.0 && m<=3.5) userArch='Long-Range';
+    else if(m>=3.8) userArch='Speed';
+    else if(r<=100 && m>=2.0 && m<=3.5) userArch='Positional';
+    else userArch='Mixed';
+  }
+
+  const colors = {KYL:'#ff7a8a', Positional:'#7aeac4', 'Long-Range':'#5ea2ff', Speed:'#ffb86b', Mixed:'#9aa3b2'};
+  let bars = '';
+  for(let i=0;i<data.length;i++){
+    const d = data[i];
+    const y = P.t + i*rowH + 4;
+    const bh = rowH - 8;
+    const bw = (d.count/maxC)*xW;
+    const color = colors[d.name] || '#9aa3b2';
+    const isUser = (d.name === userArch);
+    const opacity = isUser ? '0.95' : '0.55';
+    const stroke = isUser ? '<rect x="'+P.l+'" y="'+(y-3)+'" width="'+(xW+3)+'" height="'+(bh+6)+'" fill="none" stroke="#7aeac4" stroke-width="2"/>' : '';
+    const tip = '<strong>'+d.name+'</strong><br>'+d.count+' targets ('+d.pct+'%)<br>of 791 total';
+    bars += stroke +
+      '<rect x="'+P.l+'" y="'+y+'" width="'+bw+'" height="'+bh+'" fill="'+color+'" opacity="'+opacity+'" onmouseover="showTip(\''+tip+'\', event)" onmouseout="hideTip()"/>' +
+      '<text x="'+(P.l-6)+'" y="'+(y+bh/2+3)+'" text-anchor="end" font-size="11" fill="#e8ecf2" font-weight="'+(isUser?'700':'400')+'">'+d.name+'</text>' +
+      '<text x="'+(P.l+bw+6)+'" y="'+(y+bh/2+3)+'" font-size="11" fill="'+color+'" font-family="JetBrains Mono,monospace" font-weight="700">'+d.pct+'% · n='+d.count+'</text>';
+  }
+
+  const sig = '<text x="'+(W-4)+'" y="'+(H-2)+'" text-anchor="end" font-size="8" fill="rgba(122,234,196,0.4)" font-family="JetBrains Mono,monospace">© Kolawat Runelert</text>';
+  const userHint = userArch ? '<div class="v4-hint">👤 ค่าของคุณอยู่ในกลุ่ม <strong>'+userArch+'</strong></div>' : '';
+
+  return '<div class="gfx-title">Stage Archetype Frequency — what NRL22 uses most</div>' +
+    '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">' + bars + sig + '</svg>' +
+    '<div class="gfx-cap">Positional แทรกอยู่ทุกแมตช์ (52%) — backbone ของ NRL22 design</div>' +
+    userHint;
 }
 
 function classifyStageType(r, m){
@@ -961,7 +1154,10 @@ function updateSuggestion(r,m,s){
   document.getElementById('sugBars').innerHTML = b.size.top.map(function(t){
     const isMatch = (isFinite(s) && Math.abs(t.sz-s)<=0.25);
     const cnt = Math.round(t.pct * b.n / 100);
-    return '<div class="sbar-row">' +
+    const cR = (b.lo+b.hi)/2;
+    const cM = t.sz/(cR*K);
+    const tip = '<strong>'+t.sz+'″ at '+b.lo+'-'+b.hi+'m</strong><br>'+t.pct+'% of bucket ('+cnt+' targets)<br>= '+cM.toFixed(2)+' MOA<br><em>click to load</em>';
+    return '<div class="sbar-row" data-clickable="1" style="cursor:pointer" onmouseover="showTip(\''+tip+'\', event)" onmouseout="hideTip()" onclick="loadInputs('+cR+','+cM.toFixed(2)+','+t.sz+')">' +
       '<span class="sbar-label">'+t.sz+'″</span>' +
       '<div class="sbar-track">' +
         '<div class="sbar-fill'+(isMatch?' match':'')+'" style="width:'+(t.pct/maxPct*100)+'%"></div>' +
@@ -1048,6 +1244,8 @@ function updateSuggestion(r,m,s){
     document.getElementById('gfxWind').innerHTML = renderWind(r);
     document.getElementById('gfxRegression').innerHTML = renderRegression(r,s);
     document.getElementById('gfxHeatmap').innerHTML = renderHeatmap(r,m);
+    document.getElementById('gfxMOAHist').innerHTML = renderMOAHistogram(m);
+    document.getElementById('gfxArchFreq').innerHTML = renderArchetypeFrequency(r,m);
   } catch(e){ console.error('gfx render error:', e); }
 }
 
@@ -1078,5 +1276,6 @@ updateTags();
 compute();
 
 </script>
+<div id="igTooltip" class="ig-tooltip"></div>
 </body>
 </html>
